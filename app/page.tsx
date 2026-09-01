@@ -139,7 +139,7 @@ export default function Home() {
       fetchChapters(selectedSeries.id);
     } catch (err: any) {
       alert('Error al subir capítulo: ' + err.message);
-    } fontally {
+    } finally {
       setUploading(false);
     }
   };
@@ -203,7 +203,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* NAVEGADOR / LECTOR DE CAPÍTULOS */}
         {currentChapter ? (
           <div className="space-y-4">
             <button 
@@ -213,9 +212,7 @@ export default function Home() {
               <ChevronLeft className="w-4 h-4" /> Volver a lista de capítulos
             </button>
 
-            {/* CONTROLES: CAPÍTULOS Y DESPLEGABLE DE PÁGINA */}
             <div className="flex flex-wrap items-center justify-between gap-4 bg-gray-900 p-4 rounded-xl border border-gray-800">
-              
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => {
@@ -244,7 +241,6 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Selector directo de página */}
               <div className="flex items-center gap-3">
                 <label htmlFor="page-select" className="text-sm text-gray-400">
                   Ir a página:
@@ -262,10 +258,8 @@ export default function Home() {
                   ))}
                 </select>
               </div>
-
             </div>
 
-            {/* VISOR DE IMÁGENES */}
             <div className="relative flex flex-col items-center bg-gray-900 rounded-xl p-2 border border-gray-800">
               {currentChapter.pages.length > 0 ? (
                 <div className="relative group max-w-3xl w-full flex justify-center">
