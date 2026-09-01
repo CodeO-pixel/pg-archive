@@ -1,9 +1,11 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { 
   BookOpen, Upload, Plus, ChevronLeft, ChevronRight, 
   LogOut, Shield 
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../lib/supabase';
 
 interface Series {
   id: string;
