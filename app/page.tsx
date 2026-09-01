@@ -1,15 +1,9 @@
-'use client';
-
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { 
   BookOpen, Upload, Plus, ChevronLeft, ChevronRight, 
   LogOut, Shield 
 } from 'lucide-react';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from '@/lib/supabase';
 
 interface Series {
   id: string;
@@ -49,62 +43,98 @@ export default function Home() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data }) => {
+      const session = data?.session ?? null;
       setUser(session?.user ?? null);
       if (session?.user) fetchUserRole(session.user.id);
-    });
+    }).catch((err) => console.error('getSession error', err));
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) fetchUserRole(session.user.id);
     });
+    const subscription = data?.subscription;
 
     fetchSeries();
 
-    return () => subscription.unsubscribe();
+    return () => subscription?.unsubscribe?.();
   }, []);
 
   const fetchUserRole = async (userId: string) => {
-    const { data } = await supabase.from('profiles').select('role').eq('id', userId).single();
-    if (data?.role) setRole(data.role);
+    try {
+      const { data, error } = await supabase.from<{ role: string }>('profiles').select('role').eq('id', userId).single();
+      if (error) {
+        console.error('fetchUserRole error', error);
+        return;
+      }
+      if (data?.role) setRole(data.role);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const fetchSeries = async () => {
-    const { data } = await supabase.from('series').select('*').order('created_at', { ascending: false });
-    if (data) setSeriesList(data);
+    try {
+      const { data, error } = await supabase.from<Series>('series').select('*').order('created_at', { ascending: false });
+      if (error) {
+        console.error('fetchSeries error', error);
+        return;
+      }
+      setSeriesList(data ?? []);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const fetchChapters = async (seriesId: string) => {
-    const { data } = await supabase.from('chapters').select('*').eq('series_id', seriesId).order('number', { ascending: true });
-    if (data) setChapters(data);
+    try {
+      const { data, error } = await supabase.from<Chapter>('chapters').select('*').eq('series_id', seriesId).order('number', { ascending: true });
+      if (error) {
+        console.error('fetchChapters error', error);
+        return;
+      }
+      setChapters(data ?? []);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
-    if (isSignUp) {
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) setAuthError(error.message);
-      else alert('¡Cuenta creada! Ya puedes iniciar sesión.');
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setAuthError(error.message);
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) setAuthError(error.message);
+        else alert('¡Cuenta creada! Ya puedes iniciar sesión.');
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) setAuthError(error.message);
+      }
+    } catch (err: any) {
+      setAuthError(err.message ?? 'Error en autenticación');
     }
   };
 
   const handleCreateSeries = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSeriesTitle) return;
-    const { error } = await supabase.from('series').insert([{
-      title: newSeriesTitle,
-      description: newSeriesDesc,
-      cover_url: newSeriesCover || 'https://via.placeholder.com/300x400?text=Sin+Portada'
-    }]);
-    if (!error) {
-      setNewSeriesTitle('');
-      setNewSeriesDesc('');
-      setNewSeriesCover('');
-      fetchSeries();
+    try {
+      const { error } = await supabase.from('series').insert([{
+        title: newSeriesTitle,
+        description: newSeriesDesc,
+        cover_url: newSeriesCover || 'https://via.placeholder.com/300x400?text=Sin+Portada'
+      }]);
+      if (!error) {
+        setNewSeriesTitle('');
+        setNewSeriesDesc('');
+        setNewSeriesCover('');
+        fetchSeries();
+      } else {
+        console.error('createSeries error', error);
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -114,12 +144,13 @@ export default function Home() {
     setUploading(true);
 
     try {
+      const files = Array.from(chapterFiles);
       const uploadedUrls: string[] = [];
-      for (let i = 0; i < chapterFiles.length; i++) {
-        const file = chapterFiles[i];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
         const fileExt = file.name.split('.').pop();
         const filePath = `${selectedSeries.id}/cap_${chapterNumber}/${Date.now()}_${i}.${fileExt}`;
-        
+
         const { error: uploadError } = await supabase.storage.from('manga-pages').upload(filePath, file);
         if (uploadError) throw uploadError;
 
@@ -138,7 +169,8 @@ export default function Home() {
       setChapterFiles(null);
       fetchChapters(selectedSeries.id);
     } catch (err: any) {
-      alert('Error al subir capítulo: ' + err.message);
+      alert('Error al subir capítulo: ' + (err.message ?? String(err)));
+      console.error(err);
     } finally {
       setUploading(false);
     }
@@ -324,7 +356,7 @@ export default function Home() {
                   />
                   <input 
                     type="file" multiple accept="image/*,.cbz,.cbr,.zip,.rar" onChange={e => setChapterFiles(e.target.files)} required
-                    className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1 text-sm text-gray-300 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-indigo-600 file:text-white"
+                    className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1 text-sm text-gray-300"
                   />
                   <button 
                     type="submit" disabled={uploading}
