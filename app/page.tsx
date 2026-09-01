@@ -323,7 +323,7 @@ export default function Home() {
                     className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm"
                   />
                   <input 
-                    type="file" multiple accept="image/*" onChange={e => setChapterFiles(e.target.files)} required
+                    type="file" multiple accept="image/*,.cbz,.cbr,.zip,.rar" onChange={e => setChapterFiles(e.target.files)} required
                     className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1 text-sm text-gray-300 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-indigo-600 file:text-white"
                   />
                   <button 
@@ -412,9 +412,7 @@ export default function Home() {
             )}
           </div>
         )}
-        
       </main>
     </div>
   );
 }
-
