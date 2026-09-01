@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "build:cloudflare": "next build && npx @cloudflare/next-on-pages@latest ./",
+    "postbuild": "npx @cloudflare/next-on-pages@latest ./",
+    "start": "next start -p $PORT",
     "lint": "next lint"
   },
   "dependencies": {
